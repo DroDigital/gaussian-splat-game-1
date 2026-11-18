@@ -194,7 +194,7 @@ export class WorldFx {
               vec3 dir = normalize(drift + vec3(0.0, 1e-3, 0.0));
               vec3 sc = ${o.gsplat}.scales;
               float maxS = max(sc.x, max(sc.y, sc.z));
-              float grow = mix(1.0, m1.y, m);
+              float grow = mix(1.0, m1.y, m * m);
               float sm = smoothstep(0.0, 0.7, m);
               vec3 wisp = vec3(maxS * grow * (1.0 + m1.z * m), maxS * grow * 0.55, maxS * grow * 0.55);
               vec4 q0 = ${o.gsplat}.quaternion;
@@ -202,7 +202,7 @@ export class WorldFx {
               if (dot(q0, qd) < 0.0) qd = -qd;
               ${o.gsplat}.quaternion = normalize(mix(q0, qd, sm));
               ${o.gsplat}.scales = mix(sc * grow, wisp, sm);
-              ${o.gsplat}.rgba.a *= mix(1.0, m1.w, m);
+              ${o.gsplat}.rgba.a *= mix(1.0, m1.w, smoothstep(0.0, 0.85, m));
               ${o.gsplat}.rgba.rgb = mix(${o.gsplat}.rgba.rgb, ${i.smoke}, m * m2.x);
             }`
             }

@@ -141,8 +141,8 @@ export const MELT = {
   scaleMax: 4.0,
   /** Extra stretch along drift direction at full melt. */
   stretch: 2.6,
-  /** Opacity multiplier at full melt. */
-  opacityMin: 0.16,
+  /** Opacity multiplier at full melt (splats get bigger AND more transparent). */
+  opacityMin: 0.08,
   /** How strongly colour moves to smoke grey at full melt. */
   greyMix: 0.88,
   /** Drift animation speed. */
@@ -237,7 +237,7 @@ export const POST = {
 
 export const QUALITY = {
   high: { budget: 1_500_000, density: 1.0, pixelRatio: 1.5 },
-  low: { budget: 500_000, density: 0.58, pixelRatio: 1.0 },
+  low: { budget: 500_000, density: 0.4, pixelRatio: 1.0 },
 } as const;
 export type QualityName = keyof typeof QUALITY;
 

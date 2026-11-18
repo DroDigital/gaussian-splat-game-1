@@ -357,12 +357,16 @@ export class SplatBuilder {
   subsample(budget: number, protect = 0) {
     if (this.count <= budget) return;
     const keepP = (budget - protect) / (this.count - protect);
-    const r = mulberry32(99);
+    // stratified (error-diffusion) decimation: splats are emitted in scanline
+    // order, so this thins surfaces evenly instead of punching random holes
+    let acc = 0.5;
     let w = protect;
     // compensate density loss with slightly larger in-plane splats
     const g = 1 / Math.sqrt(keepP);
     for (let i = protect; i < this.count; i++) {
-      if (r() < keepP) {
+      acc += keepP;
+      if (acc >= 1) {
+        acc -= 1;
         if (w !== i) {
           this.pos.copyWithin(w * 3, i * 3, i * 3 + 3);
           this.scale.copyWithin(w * 3, i * 3, i * 3 + 3);
