@@ -134,9 +134,9 @@ export const MELT = {
   /** Curl-noise displacement (m) at full melt. */
   curlAmp: 2.6,
   /** Upward drift (m) at full melt. */
-  driftUp: 5.5,
+  driftUp: 3.8,
   /** Sideways wind drift (m) at full melt. */
-  wind: [1.6, 0, 0.7] as const,
+  wind: [1.1, 0, 0.5] as const,
   /** Scale multiplier at full melt (spec: up to 4x). */
   scaleMax: 4.0,
   /** Extra stretch along drift direction at full melt. */
@@ -185,8 +185,8 @@ export const GAZE = {
   /** Stability repaired per second at the centre of the cone. */
   repairRate: 1.1,
   /** Close bubble around the player that is always partly repaired (m). */
-  nearRadius: 3.0,
-  nearStrength: 0.55,
+  nearRadius: 4.5,
+  nearStrength: 0.8,
   /** Exponential approach rate of unobserved stability to the floor (1/s). */
   decayRate: 0.38,
   /** Floor of unobserved stability at t=0 and how it collapses over the timer. */

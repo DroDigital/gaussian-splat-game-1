@@ -203,6 +203,8 @@ export class WorldFx {
               ${o.gsplat}.quaternion = normalize(mix(q0, qd, sm));
               ${o.gsplat}.scales = mix(sc * grow, wisp, sm);
               ${o.gsplat}.rgba.a *= mix(1.0, m1.w, smoothstep(0.0, 0.85, m));
+              // smoke thins out right at the lens so the watched cone stays readable
+              ${o.gsplat}.rgba.a *= mix(1.0, smoothstep(0.8, 6.5, length(p + drift - cam)), sm);
               ${o.gsplat}.rgba.rgb = mix(${o.gsplat}.rgba.rgb, ${i.smoke}, m * m2.x);
             }`
             }
