@@ -193,7 +193,7 @@ export class SplatBuilder {
     const nu = Math.max(1, Math.round(lu / sp));
     const nv = Math.max(1, Math.round(lv / sp));
     const du = lu / nu, dv = lv / nv;
-    const sz = opts.size ?? 0.62;
+    const sz = opts.size ?? 0.8;
     const th = opts.thickness ?? 0.006;
     const op = opts.opacity ?? 1;
     const jit = opts.jitter ?? 0.025;

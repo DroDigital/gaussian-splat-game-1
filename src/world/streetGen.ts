@@ -161,6 +161,17 @@ export function buildStreet(preset: PresetDef, density: number): Level {
       }
     }
   }
+  // coarse dark underlayer so gaussian tails never let the bright clear colour through
+  for (const [s, a0, a1] of [
+    [seg0, -20, L0 + w1 / 2],
+    [seg1, w0 / 2, L1 + 32],
+  ] as const) {
+    for (let a = a0; a < a1; a += 2) {
+      const e = Math.min(a1, a + 2);
+      const y = Math.min(roadY(s, a + 0.01), roadY(s, e - 0.01)) - 0.025;
+      B.rect(P(s, a, -s.w / 2 - 0.4, y), Ud(s, e - a), Nd(s, s.w + 0.8), C.asphaltDark, { spacing: 4, size: 1.1, jitter: 0.01 });
+    }
+  }
   buildRoad(seg0, -20, L0 + w1 / 2);
   buildRoad(seg1, w0 / 2, L1 + 32);
 
