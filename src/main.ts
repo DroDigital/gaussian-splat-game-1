@@ -647,6 +647,15 @@ Object.assign(window, {
       win();
     },
     gaze: GAZE,
+    /** Deterministic field simulation: run `seconds` of the stability field looking along yaw/pitch. */
+    simulate(seconds: number, yaw: number, pitch = 0, timerAt?: number) {
+      if (timerAt !== undefined) state.time = timerAt;
+      const dir = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+      const eye = new THREE.Vector3(player.x, eyeY, player.z);
+      const steps = Math.round(seconds * 30);
+      for (let i = 0; i < steps; i++) field.step(eye, dir, { dt: 1 / 30, floor: state.floor, decayRate: state.decayRate, force: 0, repairScale: 1 });
+      fx.stab.value = field.texture;
+    },
     level: () => level,
   },
 });

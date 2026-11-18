@@ -176,7 +176,10 @@ export class WorldFx {
             // distance haze: extra melt far away so the street never visibly ends
             float camDist = length(p - cam);
             melt = max(melt, smoothstep(h0.w, h1.x, camDist) * h1.y);
-            melt = max(melt, vtx * ${i.v1}.w);
+            // the vortex melts everything outside a calm eye around the player
+            vec3 vrel = p - ${i.center};
+            float vr = length(vrel - ${i.axis} * dot(vrel, ${i.axis}));
+            melt = max(melt, vtx * ${i.v1}.w * smoothstep(5.0, 16.0, vr));
             // stagger per splat so the edge tears apart instead of fading uniformly
             melt = clamp(melt * (0.75 + 0.5 * h) * ${meltScale.toFixed(3)}, 0.0, 1.0);
             if (melt > 0.002) {
@@ -213,7 +216,9 @@ export class WorldFx {
               vec3 radial = rel - axis * y;
               float r = length(radial);
               vec3 rdir = r > 1e-4 ? radial / r : vec3(1.0, 0.0, 0.0);
-              float fall = v0.z / (v0.z + r);
+              // calm eye around the player so the street wraps *around* the camera
+              float eye = smoothstep(2.5, 11.0, r);
+              float fall = v0.z / (v0.z + r) * mix(0.12, 1.0, eye);
               float ang = vtx * v0.x * fall * (1.0 + v0.y * max(y + 2.0, 0.0)) + ${i.vortexPhase} * fall;
               float pullK = vtx * v0.w * (1.0 - exp(-r / v1.x));
               float r2 = r * (1.0 - pullK);
@@ -221,12 +226,12 @@ export class WorldFx {
               vec3 rd2 = rdir * cos(ang) + tdir * sin(ang);
               float y2 = y * (1.0 - 0.35 * vtx * smoothstep(20.0, 80.0, y))
                 + vtx * v1.y * r2 * (0.4 + 0.6 * vtx)
-                - vtx * v1.z * exp(-r / 8.0);
+                - vtx * v1.z * eye * exp(-r / 14.0);
               ${o.gsplat}.center = ${i.center} + axis * y2 + rd2 * r2;
               float ha = 0.5 * ang;
               ${o.gsplat}.quaternion = hts_quatMul(vec4(axis * sin(ha), cos(ha)), ${o.gsplat}.quaternion);
               // tangential smear while spinning
-              ${o.gsplat}.scales *= vec3(1.0 + vtx * 0.6 * fall, 1.0, 1.0);
+              ${o.gsplat}.scales *= vec3(1.0 + vtx * 0.6 * fall * eye, 1.0, 1.0);
             }
 
             // ---- distance haze colour ----
