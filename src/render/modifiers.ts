@@ -172,7 +172,7 @@ export class WorldFx {
                 : `
             float stab = hts_stab(${i.stab}, p, ${i.fieldMin}, ${i.fieldSize});
             stab = min(stab, 1.0 - ${i.globalMelt});
-            float melt = 1.0 - smoothstep(m0.y, m0.x, stab);
+            float melt = pow(1.0 - smoothstep(m0.y, m0.x, stab), 1.3);
             // distance haze: extra melt far away so the street never visibly ends
             float camDist = length(p - cam);
             melt = max(melt, smoothstep(h0.w, h1.x, camDist) * h1.y);

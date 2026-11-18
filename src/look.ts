@@ -126,13 +126,13 @@ export const HAZE = {
 
 export const MELT = {
   /** Stability (0..1) above which a splat is fully photographic. */
-  stableAbove: 0.92,
+  stableAbove: 0.86,
   /** Stability at which melt is complete. */
-  meltedBelow: 0.12,
+  meltedBelow: 0.04,
   /** Curl-noise spatial frequency (1/m). */
   curlFreq: 0.22,
   /** Curl-noise displacement (m) at full melt. */
-  curlAmp: 2.6,
+  curlAmp: 2.1,
   /** Upward drift (m) at full melt. */
   driftUp: 3.8,
   /** Sideways wind drift (m) at full melt. */
