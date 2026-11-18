@@ -30,6 +30,10 @@ export function createSpark(renderer: THREE.WebGLRenderer) {
     // radial sort is stable under the rapid rotations of the vortex
     sortRadial: true,
     maxStdDev: Math.sqrt(7),
+    // melted smoke splats grow 4x: cap their screen footprint and drop the
+    // faintest fragments to keep overdraw in check
+    maxPixelRadius: 320,
+    minAlpha: 1.5 / 255,
   });
 }
 

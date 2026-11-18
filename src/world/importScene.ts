@@ -66,94 +66,105 @@ function trim(p: Float32Array) {
   return new Float32Array(out);
 }
 
-/** How ground-like the lowest dense layer is along `up`. Returns score and ground height. */
-function groundScore(p: Float32Array, up: THREE.Vector3) {
+/**
+ * Find the ground: RANSAC over dominant planes in the sample; the ground is the
+ * large plane with (nearly) every other point on one side of it, i.e. the
+ * lowest dense layer. Robust to arbitrary up axes and tilted captures.
+ */
+function findGround(p: Float32Array, flip: boolean) {
   const n = p.length / 3;
-  const h = new Float32Array(n);
-  let lo = Infinity, hi = -Infinity;
-  for (let i = 0; i < n; i++) {
-    const v = p[i * 3] * up.x + p[i * 3 + 1] * up.y + p[i * 3 + 2] * up.z;
-    h[i] = v;
-    if (v < lo) lo = v;
-    if (v > hi) hi = v;
+  const rnd = mulberry32(11);
+  // working subsample
+  const m = Math.min(n, 30000);
+  const S = new Float32Array(m * 3);
+  for (let i = 0; i < m; i++) {
+    const k = Math.floor(rnd() * n);
+    S[i * 3] = p[k * 3];
+    S[i * 3 + 1] = p[k * 3 + 1];
+    S[i * 3 + 2] = p[k * 3 + 2];
   }
-  const BINS = 120;
-  const hist = new Uint32Array(BINS);
-  const range = hi - lo || 1;
-  for (let i = 0; i < n; i++) hist[Math.min(BINS - 1, Math.floor(((h[i] - lo) / range) * BINS))]++;
-  let max = 0;
-  for (const c of hist) max = Math.max(max, c);
-  // lowest dense layer: first bin from the bottom with >= 35% of the max bin
-  let gb = 0;
-  while (gb < BINS - 1 && hist[gb] < max * 0.35) gb++;
-  // refine to the local peak above it
-  while (gb < BINS - 1 && hist[gb + 1] > hist[gb]) gb++;
-  const peak = hist[gb] + (hist[gb - 1] ?? 0) + (hist[gb + 1] ?? 0);
-  let above = 0;
-  for (let b = gb + 2; b < BINS; b++) above += hist[b];
-  const lowness = 1 - gb / BINS;
-  const score = (peak / n) * (above / n) * lowness * lowness;
-  return { score, ground: lo + ((gb + 0.5) / BINS) * range, range };
-}
-
-/** Least-squares plane through points near the ground layer, with RANSAC. */
-function fitGround(p: Float32Array, up: THREE.Vector3, ground: number, slab: number) {
-  const pts: THREE.Vector3[] = [];
-  for (let i = 0; i < p.length / 3; i++) {
-    const v = new THREE.Vector3(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]);
-    if (Math.abs(v.dot(up) - ground) < slab) pts.push(v);
-  }
-  if (pts.length < 30) return { normal: up.clone(), d: ground };
-  const rnd = mulberry32(7);
-  let best = { normal: up.clone(), d: ground, inl: 0 };
-  const thr = slab * 0.35;
-  for (let it = 0; it < 220; it++) {
-    const a = pts[Math.floor(rnd() * pts.length)], b = pts[Math.floor(rnd() * pts.length)], c = pts[Math.floor(rnd() * pts.length)];
-    const nrm = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
-    if (nrm.lengthSq() < 1e-12) continue;
+  let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < m; i++)
+    for (let k = 0; k < 3; k++) {
+      lo[k] = Math.min(lo[k], S[i * 3 + k]);
+      hi[k] = Math.max(hi[k], S[i * 3 + k]);
+    }
+  const diag = Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) || 1;
+  const thr = diag * 0.006;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), nrm = new THREE.Vector3();
+  let best = { score: -1, normal: new THREE.Vector3(0, 1, 0), d: 0 };
+  const ITER = 700;
+  for (let it = 0; it < ITER; it++) {
+    const i0 = Math.floor(rnd() * m), i1 = Math.floor(rnd() * m), i2 = Math.floor(rnd() * m);
+    a.fromArray(S, i0 * 3);
+    b.fromArray(S, i1 * 3);
+    c.fromArray(S, i2 * 3);
+    nrm.subVectors(b, a).cross(c.sub(a));
+    if (nrm.lengthSq() < 1e-14) continue;
     nrm.normalize();
-    if (nrm.dot(up) < 0) nrm.negate();
-    if (nrm.dot(up) < 0.8) continue; // stay close to the coarse up axis
     const d = nrm.dot(a);
-    let inl = 0;
-    for (let k = 0; k < pts.length; k += 3) if (Math.abs(nrm.dot(pts[k]) - d) < thr) inl++;
-    if (inl > best.inl) best = { normal: nrm, d, inl };
+    let inl = 0, pos = 0, neg = 0;
+    for (let i = 0; i < m; i += 2) {
+      const e = nrm.x * S[i * 3] + nrm.y * S[i * 3 + 1] + nrm.z * S[i * 3 + 2] - d;
+      if (Math.abs(e) < thr) inl++;
+      else if (e > 0) pos++;
+      else neg++;
+    }
+    const side = Math.max(pos, neg) / Math.max(1, pos + neg);
+    const score = inl * Math.pow(side, 6);
+    if (score > best.score) best = { score, normal: (pos >= neg ? nrm.clone() : nrm.clone().negate()), d: pos >= neg ? d : -d };
   }
-  return best;
+  // least-squares refine on inliers (PCA: smallest-variance direction)
+  const up = best.normal;
+  const inl: number[] = [];
+  for (let i = 0; i < m; i++) {
+    const e = up.x * S[i * 3] + up.y * S[i * 3 + 1] + up.z * S[i * 3 + 2] - best.d;
+    if (Math.abs(e) < thr * 1.5) inl.push(i);
+  }
+  if (inl.length > 50) {
+    const mean = new THREE.Vector3();
+    for (const i of inl) mean.add(a.fromArray(S, i * 3));
+    mean.divideScalar(inl.length);
+    const cov = new THREE.Matrix3();
+    const e = cov.elements;
+    for (const i of inl) {
+      const x = S[i * 3] - mean.x, y = S[i * 3 + 1] - mean.y, z = S[i * 3 + 2] - mean.z;
+      e[0] += x * x; e[1] += x * y; e[2] += x * z; e[4] += y * y; e[5] += y * z; e[8] += z * z;
+    }
+    e[3] = e[1]; e[6] = e[2]; e[7] = e[5];
+    // inverse iteration for the smallest eigenvector, seeded with the RANSAC normal
+    const reg = new THREE.Matrix3().copy(cov);
+    const tr = (e[0] + e[4] + e[8]) * 1e-6 + 1e-12;
+    reg.elements[0] += tr; reg.elements[4] += tr; reg.elements[8] += tr;
+    const inv = reg.clone().invert();
+    const v = up.clone();
+    for (let k = 0; k < 12; k++) v.applyMatrix3(inv).normalize();
+    if (v.dot(up) < 0) v.negate();
+    if (v.dot(up) > 0.95) up.copy(v);
+    best.d = up.dot(mean);
+  }
+  if (flip) {
+    up.negate();
+    best.d = -best.d;
+  }
+  return { up, d: best.d };
 }
 
 export function autoLevel(raw: Float32Array, flip = false) {
   const p = trim(raw);
-  // candidate up axes: ±X, ±Y, ±Z
-  const cands = [
-    new THREE.Vector3(0, 1, 0),
-    new THREE.Vector3(0, -1, 0),
-    new THREE.Vector3(0, 0, 1),
-    new THREE.Vector3(0, 0, -1),
-    new THREE.Vector3(1, 0, 0),
-    new THREE.Vector3(-1, 0, 0),
-  ];
-  let best = { up: cands[0], s: groundScore(p, cands[0]) };
-  for (const u of cands.slice(1)) {
-    const s = groundScore(p, u);
-    if (s.score > best.s.score) best = { up: u, s };
-  }
-  let up = best.up.clone();
-  if (flip) up.negate();
-  const gs = flip ? groundScore(p, up) : best.s;
-  const fit = fitGround(p, up, gs.ground, gs.range * 0.03);
-  up = fit.normal.clone();
-  const q = new THREE.Quaternion().setFromUnitVectors(up, new THREE.Vector3(0, 1, 0));
+  const g = findGround(p, flip);
+  const q = new THREE.Quaternion().setFromUnitVectors(g.up, new THREE.Vector3(0, 1, 0));
   // heights above ground for metric-scale heuristics
   const n = p.length / 3;
   const hs = new Float32Array(n);
   const v = new THREE.Vector3();
-  for (let i = 0; i < n; i++) hs[i] = v.set(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]).dot(up) - fit.d;
+  for (let i = 0; i < n; i++) hs[i] = v.set(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]).dot(g.up) - g.d;
   hs.sort();
   const h95 = hs[Math.floor(n * 0.95)] || 1;
   // Polycam/Luma exports are metric; COLMAP-based ones (Postshot) are often not.
   const scale = h95 > 2.5 && h95 < 45 ? 1 : 8 / Math.max(1e-3, h95);
-  return { quat: q, groundD: fit.d, scale };
+  // ground offset in the rotated frame: rotated y of a ground point == d
+  return { quat: q, groundD: g.d, scale };
 }
 
 function transformSample(raw: Float32Array, quat: THREE.Quaternion, groundD: number, scale: number) {

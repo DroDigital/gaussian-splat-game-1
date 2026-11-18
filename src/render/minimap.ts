@@ -130,8 +130,8 @@ export class Minimap {
     this.renderer.setClearColor(new THREE.Color(...MINIMAP.grid), 1);
     const target = this.spark.renderTarget({ scene, camera: this.camera });
     this.renderer.setClearColor(prevClear, prevAlpha);
+    if (!this.quadMat.map) this.quadMat.needsUpdate = true;
     this.quadMat.map = target.texture;
-    this.quadMat.needsUpdate = true;
   }
 
   /** Composite the target into the canvas under the frame, and draw markers. */

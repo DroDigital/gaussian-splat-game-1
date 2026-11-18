@@ -296,12 +296,32 @@ const raycaster = new THREE.Raycaster();
 function placeAnchorAt(ndcX: number, ndcY: number) {
   if (!imported || placed.length >= LEVEL.anchorCount) return;
   raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-  const hits = raycaster.intersectObject(imported.mesh, false);
-  if (!hits.length) {
+  let hit: THREE.Vector3 | null = null;
+  try {
+    const hits = raycaster.intersectObject(imported.mesh, false);
+    if (hits.length) hit = hits[0].point.clone();
+  } catch {
+    /* fall through to the sample picker */
+  }
+  // fallback: nearest levelled splat centre within a thin cone around the ray
+  if (!hit) {
+    const { origin, direction } = raycaster.ray;
+    const S = imported.sample;
+    let bestT = Infinity;
+    for (let i = 0; i < S.length; i += 3) {
+      const dx = S[i] - origin.x, dy = S[i + 1] - origin.y, dz = S[i + 2] - origin.z;
+      const t = dx * direction.x + dy * direction.y + dz * direction.z;
+      if (t <= 0.3 || t >= bestT) continue;
+      const px = dx - direction.x * t, py = dy - direction.y * t, pz = dz - direction.z * t;
+      const r = Math.max(0.12, t * 0.012);
+      if (px * px + py * py + pz * pz < r * r) bestT = t;
+    }
+    if (bestT < Infinity) hit = origin.clone().addScaledVector(direction, bestT);
+  }
+  if (!hit) {
     hud.toast("no surface there");
     return;
   }
-  const hit = hits[0].point;
   const kind = ANCHOR_ORDER[placed.length];
   const mesh = meshFromBuilder(buildAnchorSplats(kind, 1, placed.length + 1), fx, "anchor");
   mesh.position.copy(hit);
@@ -460,6 +480,7 @@ let fpsAcc = 0, fpsN = 0, fpsT = 0;
 let lockFlash = 0;
 const camDir = new THREE.Vector3();
 const vortexCenter = new THREE.Vector3();
+const vortexTarget = new THREE.Vector3();
 
 function frame(timestamp: number) {
   clock.update(timestamp);
@@ -571,7 +592,8 @@ function frame(timestamp: number) {
   fx.globalMelt.value = dbg.globalMelt;
   fx.vortex.value = v;
   fx.vortexPhase.value = state.vortexPhase;
-  vortexCenter.lerp(new THREE.Vector3(player.x, (level?.ground(player.x, player.z) ?? 0) + 0.2, player.z), v > 0.001 ? 0.02 : 1);
+  vortexTarget.set(player.x, (level?.ground(player.x, player.z) ?? 0) + 0.2, player.z);
+  vortexCenter.lerp(vortexTarget, v > 0.001 ? 0.02 : 1);
   fx.center.value.copy(vortexCenter);
   for (const m of worldMeshes) m.updateVersion();
   for (let i = 0; i < anchorMeshes.length; i++) {
@@ -647,6 +669,12 @@ Object.assign(window, {
       win();
     },
     gaze: GAZE,
+    editNext: () => editNext(),
+    editPoint: (x: number, z: number) => minimap.editPoints.push(x, z),
+    placeAnchor: (nx: number, ny: number) => placeAnchorAt(nx, ny),
+    get imported() {
+      return imported ? { name: imported.name, scale: imported.scale, min: imported.min.toArray(), max: imported.max.toArray(), splats: imported.mesh.numSplats } : null;
+    },
     /** Deterministic field simulation: run `seconds` of the stability field looking along yaw/pitch. */
     simulate(seconds: number, yaw: number, pitch = 0, timerAt?: number) {
       if (timerAt !== undefined) state.time = timerAt;
