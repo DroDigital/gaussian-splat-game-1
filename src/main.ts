@@ -8,6 +8,7 @@ import { Ambience } from "./audio/ambience";
 import { ANCHOR_INFO, AnchorSystem, buildAnchorSplats } from "./game/anchors";
 import { GameState, slide } from "./game/state";
 import { Controls } from "./input/controls";
+import { DynamicResolution } from "./perf";
 import { GAZE, LEVEL, QUALITY, type QualityName, VORTEX } from "./look";
 import { Minimap } from "./render/minimap";
 import { WorldFx } from "./render/modifiers";
@@ -423,9 +424,12 @@ function lose() {
 }
 
 // ---------------------------------------------------------------- resize
+// adaptive render resolution: drops under load, creeps back with headroom
+const drs = new DynamicResolution(0.5, Math.min(window.devicePixelRatio, QUALITY[quality].pixelRatio));
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY[quality].pixelRatio));
+  drs.setRange(0.5, Math.min(window.devicePixelRatio, QUALITY[quality].pixelRatio));
+  renderer.setPixelRatio(drs.scale);
   renderer.setSize(w, h, false);
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
@@ -485,6 +489,7 @@ const vortexTarget = new THREE.Vector3();
 function frame(timestamp: number) {
   clock.update(timestamp);
   const rawDt = Math.min(0.1, clock.getDelta());
+  if (drs.sample(rawDt * 1000)) resize();
   const dt = rawDt * dbg.timeScale;
   const now = clock.getElapsed();
   fpsAcc += rawDt;
@@ -624,7 +629,7 @@ function frame(timestamp: number) {
   });
   ambience.update(rawDt, v, field.overall, !playing);
   if (dbg.showStats)
-    statsEl.textContent = `${dbg.fps.toFixed(0)} fps · ${(splatCount / 1e6).toFixed(2)}M splats · ${quality} · stab ${(field.overall * 100).toFixed(0)}% · floor ${(state.floor * 100).toFixed(0)}% · vortex ${v.toFixed(2)} · t ${state.time.toFixed(0)}s`;
+    statsEl.textContent = `${dbg.fps.toFixed(0)} fps · scale ${drs.scale.toFixed(2)} · ${(splatCount / 1e6).toFixed(2)}M splats · ${quality} · stab ${(field.overall * 100).toFixed(0)}% · floor ${(state.floor * 100).toFixed(0)}% · vortex ${v.toFixed(2)} · t ${state.time.toFixed(0)}s`;
   requestAnimationFrame(frame);
 }
 

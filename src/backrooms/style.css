@@ -1,0 +1,61 @@
+:root {
+  --osd: #f2f0e6;
+  --rec: #ff3a2a;
+  --paper: rgba(20, 17, 8, 0.82);
+  font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--osd); touch-action: none; -webkit-user-select: none; user-select: none; }
+#view { position: fixed; inset: 0; display: block; }
+.hidden { display: none !important; }
+.dim { opacity: 0.6; }
+.small { font-size: 11px; }
+
+/* ---------- camcorder OSD ---------- */
+#osd { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 0 4px rgba(0,0,0,0.7), 0 0 1px #000; letter-spacing: 0.08em; }
+.osd-tl { position: absolute; left: 4vw; top: 4vh; font-size: 18px; font-weight: 500; }
+#rec-dot { color: var(--rec); }
+#tc { font-size: 14px; margin-top: 4px; }
+.osd-tr { position: absolute; right: 4vw; top: 4vh; text-align: right; font-size: 15px; }
+.batt { width: 46px; height: 16px; border: 2px solid var(--osd); margin: 6px 0 0 auto; position: relative; padding: 2px; }
+.batt::after { content: ""; position: absolute; right: -6px; top: 3px; width: 4px; height: 6px; background: var(--osd); }
+#batt-fill { height: 100%; background: var(--osd); width: 100%; }
+.osd-bl { position: absolute; left: 4vw; bottom: 5vh; width: 160px; }
+.sbar { height: 3px; background: rgba(242,240,230,0.2); margin-top: 4px; }
+#san-fill { height: 100%; background: var(--osd); width: 100%; transition: width 0.3s linear; }
+#san-fill.low { background: var(--rec); }
+.osd-br { position: absolute; right: 4vw; bottom: 5vh; font-size: 14px; }
+#dot { position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; background: rgba(242,240,230,0.55); border-radius: 50%; }
+#msg { position: absolute; left: 50%; bottom: 16vh; transform: translateX(-50%); font-size: 13px; opacity: 0; transition: opacity 0.6s; white-space: nowrap; }
+#msg.on { opacity: 0.9; }
+#br-pause { position: absolute; right: 4vw; top: 14vh; pointer-events: auto; }
+
+/* ---------- screens ---------- */
+.screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(40,32,10,0.25), rgba(0,0,0,0.75)); }
+.panel { width: min(520px, calc(100vw - 32px)); padding: 26px 28px; background: var(--paper); border: 1px solid rgba(242,240,230,0.25); display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 32px); overflow: auto; }
+h1 { margin: 0; font-size: 30px; font-weight: 500; letter-spacing: 0.22em; }
+h2 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: 0.18em; }
+p { margin: 0; line-height: 1.55; font-size: 13px; }
+.sub { letter-spacing: 0.2em; font-size: 11px; opacity: 0.6; }
+.exit { color: var(--rec); }
+button { font: inherit; font-size: 12px; letter-spacing: 0.08em; color: var(--osd); background: rgba(242,240,230,0.06); border: 1px solid rgba(242,240,230,0.3); padding: 8px 12px; cursor: pointer; text-transform: lowercase; }
+button:hover { background: rgba(242,240,230,0.16); }
+button.primary { background: var(--osd); color: #15120a; border-color: var(--osd); }
+button.primary:disabled { opacity: 0.45; cursor: default; }
+button.sel { border-color: #e8c84a; color: #e8c84a; }
+button.link { background: none; border: none; padding: 0; text-decoration: underline; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+a { color: var(--osd); }
+.help { line-height: 1.7; }
+.stats { display: grid; gap: 4px; font-size: 13px; }
+.stats div { display: flex; justify-content: space-between; }
+
+.stick { position: fixed; width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); display: none; pointer-events: none; }
+.stick .knob { position: absolute; left: 40px; top: 40px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.45); }
+#br-debug { position: fixed; left: 12px; bottom: 12px; width: 260px; height: 260px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); pointer-events: none; }
+#br-stats { position: fixed; left: 280px; bottom: 12px; font-size: 11px; background: rgba(0,0,0,0.6); padding: 4px 8px; pointer-events: none; white-space: pre; }
+
+@media (max-width: 640px) {
+  .osd-tl { font-size: 14px; }
+  .osd-bl { width: 110px; }
+}
