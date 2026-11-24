@@ -83,7 +83,7 @@ export class SplatFx {
     for (let i = 0; i < n; i++) {
       const s = 0.0025 + r() * 0.004;
       const warm = 0.75 + r() * 0.25;
-      B.puff([(r() - 0.5) * this.dustBox.x, r() * this.dustBox.y, (r() - 0.5) * this.dustBox.z], [s, s, s], [1.0 * warm, 0.93 * warm, 0.72 * warm], 0.35 + r() * 0.4);
+      B.puff([(r() - 0.5) * this.dustBox.x, r() * this.dustBox.y, (r() - 0.5) * this.dustBox.z], [s, s, s], [0.85 * warm, 0.78 * warm, 0.6 * warm], 0.18 + r() * 0.3);
     }
     return B;
   }

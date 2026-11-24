@@ -517,7 +517,7 @@ function frame(ts: number) {
   cam.set("uStatic", stat);
   cam.set("uWarp", Math.max(0, insanity - 0.45) * 2.2);
   cam.set("uCA", 0.15 + insanity * 0.7 + near * 0.6);
-  cam.set("uGrain", 0.055 + insanity * 0.05);
+  cam.set("uGrain", 0.042 + insanity * 0.05);
   cam.set("uFlash", S.phase === "escaped" ? Math.max(0, 1 - Math.abs(S.endT - 0.6) * 1.6) : 0);
   cam.set("uFade", S.phase === "dead" ? Math.min(1, Math.max(0, (S.endT - 0.9) * 1.4)) : S.phase === "escaped" ? Math.min(0.92, Math.max(0, (S.endT - 1.2) * 1.5)) : 0);
   post.render(rawDt);

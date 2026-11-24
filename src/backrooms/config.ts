@@ -59,7 +59,7 @@ export const LIGHT = {
   /** Diffuse bounce strength (cheap GI). */
   bounce: 0.26,
   bounceColor: [1.0, 0.88, 0.55] as const,
-  ambient: [0.022, 0.018, 0.009] as const,
+  ambient: [0.032, 0.026, 0.013] as const,
   /** Panel emission (HDR) for bloom. */
   emit: 6.0,
 };
@@ -72,7 +72,7 @@ export const FOG = {
 /** sRGB-designed base colours (converted to linear in the texture shaders). */
 export const PALETTE = {
   wallpaper: [0.8, 0.71, 0.4] as const,
-  wallInk: [0.66, 0.56, 0.27] as const,
+  wallInk: [0.6, 0.49, 0.21] as const,
   carpet: [0.56, 0.47, 0.25] as const,
   carpetAlt: [0.5, 0.41, 0.2] as const,
   ceiling: [0.84, 0.82, 0.76] as const,

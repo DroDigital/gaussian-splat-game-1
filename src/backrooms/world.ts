@@ -129,6 +129,8 @@ export class World {
     this.level = level;
     this.rngState = this.seed ^ 0x51ed270b;
     this.exitDueAt = now + exitDelay;
+    // you always wake up somewhere lit
+    this.regions.set(cellKey(0, 0), { type: RT.Maze, orient: 0, ver: 0, seenAt: now });
   }
 
   rand() {
@@ -215,9 +217,10 @@ export class World {
   private rollCell(c: Cell) {
     const r = this.region(c.cx, c.cz);
     const h = (s: number) => hash(c.cx, c.cz, 500 + s, c.ver, this.seed);
-    const pLight = [0.86, 0.96, 0.8, 0.2, 0.55][r.type];
+    const pLight = [0.86, 0.96, 0.8, 0.36, 0.55][r.type];
     const hasLight = h(1) < pLight - Math.min(0.2, this.level * 0.04);
-    c.light = hasLight ? 0.8 + 0.2 * h(2) : 0;
+    // dark zones are dim pools of failing light, not pitch black
+    c.light = !hasLight ? 0 : r.type === RT.Dark ? 0.3 + 0.3 * h(2) : 0.8 + 0.2 * h(2);
     const f = h(3);
     const pFlick = r.type === RT.Dark ? 0.3 : 0.055 + this.level * 0.02;
     c.flick = !hasLight ? 0 : f < pFlick ? 1 : f > 0.985 ? 2 : 0;

@@ -183,12 +183,12 @@ function surfaceFrag(surf: 0 | 1 | 2, lowQ: boolean) {
       float tide = 0.05 + damage * 0.62 + (gA.g - 0.5) * 0.18;
       float below = 1.0 - smoothstep(tide - 0.02, tide + 0.02, P.y);
       float line = exp(-pow((P.y - tide) / 0.014, 2.0)) * damage;
-      albedo = mix(albedo, albedo * vec3(0.8, 0.66, 0.43), below * (0.3 + 0.7 * damage));
+      albedo = mix(albedo, albedo * vec3(0.8, 0.71, 0.55), below * (0.3 + 0.7 * damage));
       albedo *= 1.0 - line * 0.45;
       albedo *= 0.88 + 0.16 * gB.g;
       albedo *= mix(0.68, 1.0, smoothstep(0.0, 0.16, P.y));
       float mould = gA.b * (1.0 - smoothstep(0.05, 0.55 + damage * 0.6, P.y));
-      albedo *= 1.0 - mould * 0.7;
+      albedo *= 1.0 - mould * 0.45;
       albedo *= mix(0.86, 1.0, smoothstep(0.0, 0.35, WALL_H - P.y));
       rough = mix(rough, 0.5, below * damage);
     } else if (vMat < 1.5) {
